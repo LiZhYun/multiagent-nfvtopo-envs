@@ -274,7 +274,9 @@ class Scenario(BaseScenario):
         # print(line_adj.todense())
         # graph为字典，键为节点index 值为相连的节点index 先转换为Graph类 再返回邻接矩阵
         adj = nx.adjacency_matrix(world.topo.G)
-
+        # adj_dense = adj.todense()
+        # has_path = nx.shortest_path(world.topo.G, 4, 1)
+        world.topo.G.edges()
         world.topo.pm = np.zeros((adj.shape[0], line_adj.shape[0]))
 
         node_list = list(world.topo.G.nodes)
