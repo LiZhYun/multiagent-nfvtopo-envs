@@ -337,6 +337,7 @@ class Parser:
 						self.in_rate[s.func + suffix] = 0
 						if s.func + suffix != s.func and s.func in self.U_out:
 							self.U_out.remove(s.func)
+							self.UF_out.pop(s.func)
 					
 					# Create the pair
 					self.pairs.append((p, s.func + suffix))
@@ -360,7 +361,7 @@ class Parser:
 						self.in_rate[s.func + suffix] = 0
 						if s.func + suffix != s.func and s.func in self.U_out:
 							self.U_out.remove(s.func)
-					
+							self.UF_out.pop(s.func)
 					# Create the pair
 					self.pairs.append((p, s.func + suffix))
 					# Compute the data rate of the new pair
@@ -394,6 +395,7 @@ class Parser:
 						self.in_rate[self.parseDict[s.funcs[0]].func + suffix] = 0
 						if self.parseDict[s.funcs[0]].func + suffix != self.parseDict[s.funcs[0]].func and self.parseDict[s.funcs[0]].func in self.U_out:
 							self.U_out.remove(self.parseDict[s.funcs[0]].func)
+							self.UF_out.pop(self.parseDict[s.funcs[0]].func)
 					
 					# Create the pair
 					self.pairs.append((p, self.parseDict[s.funcs[0]].func + suffix))
@@ -429,6 +431,7 @@ class Parser:
 								self.in_rate[self.parseDict[s.funcs[i]].func + suffix] = 0
 								if self.parseDict[s.funcs[i]].func + suffix != self.parseDict[s.funcs[i]].func and self.parseDict[s.funcs[i]].func in self.U_out:
 									self.U_out.remove(self.parseDict[s.funcs[i]].func)
+									self.UF_out.pop(self.parseDict[s.funcs[i]].func)
 
 							if self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q) not in self.U_out:
 								self.U_out.append(self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q))
@@ -437,6 +440,7 @@ class Parser:
 								self.in_rate[self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q)] = 0
 								if self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q) != self.parseDict[s.funcs[i+1]].func + suffix and self.parseDict[s.funcs[i+1]].func + suffix in self.U_out:
 									self.U_out.remove(self.parseDict[s.funcs[i+1]].func + suffix)
+									self.UF_out.pop(self.parseDict[s.funcs[i+1]].func + suffix)
 
 							# Create the pair
 							self.pairs.append((self.parseDict[s.funcs[i]].func + suffix, self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q)))
@@ -461,6 +465,7 @@ class Parser:
 								self.in_rate[self.parseDict[s.funcs[i]].func + suffix + "_" + str(q)] = 0
 								if self.parseDict[s.funcs[i]].func + suffix + "_" + str(q) != self.parseDict[s.funcs[i]].func + suffix and self.parseDict[s.funcs[i]].func + suffix in self.U_out:
 									self.U_out.remove(self.parseDict[s.funcs[i]].func + suffix)
+									self.UF_out.pop(self.parseDict[s.funcs[i]].func + suffix)
 							
 							if self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q) not in self.U_out:
 								self.U_out.append(self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q))
@@ -469,7 +474,7 @@ class Parser:
 								self.in_rate[self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q)] = 0
 								if self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q) != self.parseDict[s.funcs[i+1]].func + suffix and self.parseDict[s.funcs[i+1]].func + suffix in self.U_out:
 									self.U_out.remove(self.parseDict[s.funcs[i+1]].func + suffix)
-
+									self.UF_out.pop(self.parseDict[s.funcs[i+1]].func + suffix)
 							# Create the pair
 							self.pairs.append((self.parseDict[s.funcs[i]].func + suffix + "_" + str(q), self.parseDict[s.funcs[i+1]].func + suffix + "_" + str(q)))
 							# Compute the data rate of the new pair
@@ -491,6 +496,7 @@ class Parser:
 							self.in_rate[self.parseDict[s.funcs[i]].func + suffix] = 0
 							if self.parseDict[s.funcs[i]].func + suffix != self.parseDict[s.funcs[i]].func and self.parseDict[s.funcs[i]].func in self.U_out:
 								self.U_out.remove(self.parseDict[s.funcs[i]].func)
+								self.UF_out.pop(self.parseDict[s.funcs[i]].func)
 					
 						if self.parseDict[s.funcs[i+1]].func + suffix not in self.U_out:
 							self.U_out.append(self.parseDict[s.funcs[i+1]].func + suffix)
@@ -499,6 +505,7 @@ class Parser:
 							self.in_rate[self.parseDict[s.funcs[i+1]].func + suffix] = 0
 							if self.parseDict[s.funcs[i+1]].func + suffix != self.parseDict[s.funcs[i+1]].func and self.parseDict[s.funcs[i+1]].func in self.U_out:
 								self.U_out.remove(self.parseDict[s.funcs[i+1]].func)
+								self.UF_out.pop(self.parseDict[s.funcs[i+1]].func)
 
 						# Create the pair
 						self.pairs.append((self.parseDict[s.funcs[i]].func + suffix, self.parseDict[s.funcs[i+1]].func + suffix))
