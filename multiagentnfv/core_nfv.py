@@ -353,7 +353,7 @@ class Action(object):
         # origitopo = self.data[-1]
         gnodes = list(G.nodes)
         for start, end in zip(*np.where(self.links > 0)):
-            if start > end and not (start not in gnodes and end not in gnodes) and end in origitopo.adj[start]:
+            if end in origitopo.adj[start]:
                 if start not in gnodes:
                     G.add_nodes_from([(start, {'usagelist': [0] * 12})])
                 if end not in gnodes:
@@ -648,7 +648,7 @@ class World(object):
         self._placeVNF(index, agent, subtopo) # 根据agent的动作 子拓扑 放置vnf 并生成或者扩容instance （包含了备份节点）
         self._placeVL(index, agent, subtopo) #  根据子拓扑 为每条虚拟链路 找到对应的物理链路
         self._calculateresreq_instance(agent, subtopo) # 计算每个instance的资源需求
-        self._calculateresreq_link(agent, subtopo)  # 计算每条link的资源需
+        # self._calculateresreq_link(agent, subtopo)  # 计算每条link的资源需
 
     def _forceordervnf(self, index, agent, subtopo):  # 确定optvnf的顺序
         
@@ -678,14 +678,19 @@ class World(object):
                             nodesj1.append(node)
                     if len(nodesj1) == 0:
                         continue
+                    findout = False
                     for nodej in nodesj:
+                        if findout == True:
+                            break
                         for nodej1 in nodesj1:
                             if nx.has_path(subtopo, nodej, nodej1):
                                 tmp = optusage[j]
                                 optusage[j] = optusage[j+1]
                                 optusage[j+1] = tmp
-                                continue
-                    self.optvl_cantfind_constrain[index] += 1
+                                findout = True
+                                break
+                    if findout == False:
+                        self.optvl_cantfind_constrain[index] += 1
             
             
             agent.request.request_class.forceOrder[keystr] = tuple(
@@ -935,13 +940,56 @@ class World(object):
                                                 instance.ID] = instance
                     
     def _placeVL(self, index, agent, subtopo):
-        subtopo = subtopo.to_undirected()
+        # subtopo = subtopo.to_undirected()
         # self._createoptVL(agent, subtopo)  # 为optusage创建vl
         origitopo = agent.action.origitopo
         for vl in agent.request.virtual_links:
 
             startvnf = vl.in_vnf
             endvnf = vl.out_vnf
+            if len(startvnf.ID.split('_')) > 1 and len(startvnf.instances_belong) == 0:
+                ori_vnf_name = startvnf.ID.split('_')[0] + '_0'
+                ori_vnf = agent.request.hashtable_vnf[ori_vnf_name]
+                if ori_vnf.instances_belong == []:
+                    self.unplaced_usage_constrain[index] += 1
+                    continue
+                toinstance = ori_vnf.instances_belong[0]
+                # node = toinstance.node_belong.ID
+                traffic_available = toinstance.traffic_available
+                if traffic_available < startvnf.traffic_required:
+                    expansion = startvnf.traffic_required - traffic_available
+                    toinstance.traffic_total += expansion
+                    toinstance.traffic_available = 0
+                    # 增加扩容成本
+                    self.instance_expansion[index] += expansion * \
+                        EXPANSION_COST[toinstance.type]
+                toinstance.vnfs.append(startvnf)
+                toinstance.hashtable_vnf[startvnf.request_belong.ID + startvnf.ID] = startvnf
+                startvnf.instances_belong.append(toinstance)
+                startvnf.hashtable_instances[toinstance.node_belong.ID +
+                                             toinstance.ID] = toinstance
+            if len(endvnf.ID.split('_')) > 1 and len(endvnf.instances_belong) == 0:
+                ori_vnf_name = endvnf.ID.split('_')[0] + '_0'
+                ori_vnf = agent.request.hashtable_vnf[ori_vnf_name]
+                if ori_vnf.instances_belong == []:
+                    self.unplaced_usage_constrain[index] += 1
+                    continue
+                toinstance = ori_vnf.instances_belong[0]
+                # node = toinstance.node_belong.ID
+                traffic_available = toinstance.traffic_available
+                if traffic_available < endvnf.traffic_required:
+                    expansion = endvnf.traffic_required - traffic_available
+                    toinstance.traffic_total += expansion
+                    toinstance.traffic_available = 0
+                    # 增加扩容成本
+                    self.instance_expansion[index] += expansion * \
+                        EXPANSION_COST[toinstance.type]
+                toinstance.vnfs.append(endvnf)
+                toinstance.hashtable_vnf[endvnf.request_belong.ID + endvnf.ID] = endvnf
+                endvnf.instances_belong.append(toinstance)
+                endvnf.hashtable_instances[toinstance.node_belong.ID +
+                                             toinstance.ID] = toinstance
+
             if len(startvnf.instances_belong) == 0:
                 # logging.info('startvnf not embedded')
                 self.unplaced_usage_constrain[index] += 1
@@ -960,25 +1008,41 @@ class World(object):
                     self.link_cantfind_constrain[index] += 1
                     continue
                 path_nodes = nx.shortest_path(origitopo, source=startnode, target=endnode)
+                if len(path_nodes) == 1:
+                    link = self.topo.hashtable_link['(' + str(path_nodes[0]) + str(path_nodes[0]) + ')']
+                    vl.links.append(link)
+                    vl.hashtable_links[link.ID] = link
+                    link.virtual_links.append(vl)
+                    link.hashtable_virtual_link[vl.request_belong.ID + vl.ID] = vl
+                    link.bandwidth_occupied += vl.datarate_required
                 for i in range(len(path_nodes) - 1):
                     link = self.topo.hashtable_link['(' + str(path_nodes[i]) + str(path_nodes[i+1]) + ')']
                     vl.links.append(link)
                     vl.hashtable_links[link.ID] = link
                     link.virtual_links.append(vl)
                     link.hashtable_virtual_link[vl.request_belong.ID + vl.ID] = vl
+                    link.bandwidth_occupied += vl.datarate_required
             else:
                 if nx.has_path(subtopo, startnode, endnode) == False:
                     self.link_cantfind_constrain[index] += 1
                     continue
                 path_nodes = nx.shortest_path(subtopo, source=startnode, target=endnode)
+                if len(path_nodes) == 1:
+                    link = self.topo.hashtable_link['(' + str(path_nodes[0]) + str(path_nodes[0]) + ')']
+                    vl.links.append(link)
+                    vl.hashtable_links[link.ID] = link
+                    link.virtual_links.append(vl)
+                    link.hashtable_virtual_link[vl.request_belong.ID + vl.ID] = vl
+                    link.bandwidth_occupied += vl.datarate_required
                 for i in range(len(path_nodes) - 1):
                     link = self.topo.hashtable_link['(' + str(path_nodes[i]) + str(path_nodes[i+1]) + ')']
                     vl.links.append(link)
                     vl.hashtable_links[link.ID] = link
                     link.virtual_links.append(vl)
                     link.hashtable_virtual_link[vl.request_belong.ID + vl.ID] = vl
-        del subtopo
-        gc.collect()
+                    link.bandwidth_occupied += vl.datarate_required
+        # del subtopo
+        # gc.collect()
 
     def _calculateresreq_instance(self, agent, subtopo):  # 计算每个instance的资源需求 cpu和存储
         # for u in agent.request.data.U:  # req0_u1_0
@@ -996,10 +1060,11 @@ class World(object):
                 #     lambda cpu, mem: cpu * instance.traffic_total + mem * instance.traffic_total, RES_REQ[instance.type])
 
     # 计算每条link的资源需求 带宽
-    def _calculateresreq_link(self, agent, subtopo):
-        for link in self.topo.links:
-            for vl in link.virtual_links:
-                link.bandwidth_occupied += vl.datarate_required
+    # def _calculateresreq_link(self, agent, subtopo):
+    #     for link in self.topo.links:
+    #         link.bandwidth_occupied = 0
+    #         for vl in link.virtual_links:
+    #             link.bandwidth_occupied += vl.datarate_required
         
 
 
