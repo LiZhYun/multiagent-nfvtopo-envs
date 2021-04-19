@@ -55,6 +55,8 @@ class Constrain(object):
         resource_constrain = 0
         resource_reward = 0
         for node in topo.nodes:
+            node.cpu_occupied = 0
+            node.mem_occupied = 0
             for instance in node.vnf_instances:
                 node.cpu_occupied += instance.resource_consume[0]
                 node.mem_occupied += instance.resource_consume[1]
